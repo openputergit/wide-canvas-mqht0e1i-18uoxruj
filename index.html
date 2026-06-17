@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlassFlow - Premium Glassmorphism Appointment Scheduler</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Google Fonts: Space Grotesk & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        space: ['Space Grotesk', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.37)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #030712;
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(210,100%,15%,0.3) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(180,100%,15%,0.35) 0px, transparent 50%),
+                radial-gradient(at 50% 100%, hsla(240,100%,10%,0.4) 0px, transparent 50%);
+            min-height: 100vh;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-panel-hover:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        .glass-input {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            backdrop-filter: blur(4px);
+        }
+        .glass-input:focus {
+            outline: none;
+            border-color: rgba(6, 182, 212, 0.6);
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.15);
+        }
+        /* Custom Scrollbar for sleek UI */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body class="font-sans text-slate-100 selection:bg-cyan-500/30 selection:text-white min-h-screen relative overflow-x-hidden">
+    
+    <!-- Decorative Glowing Blobs -->
+    <div class="absolute -top-40 -left-40 w-96 h-96 bg-cyan-600/20 rounded-full filter blur-[120px] pointer-events-none"></div>
+    <div class="absolute top-1/3 -right-40 w-96 h-96 bg-indigo-600/15 rounded-full filter blur-[120px] pointer-events-none"></div>
+    <div class="absolute -bottom-40 left-1/3 w-96 h-96 bg-teal-600/15 rounded-full filter blur-[120px] pointer-events-none"></div>
+
+    <!-- Alert System Container -->
+    <div id="toast-container" class="fixed top-5 right-5 z-[100] flex flex-col gap-3 max-w-sm w-full pointer-events-none"></div>
+
+    <!-- Main Navigation Bar -->
+    <nav class="sticky top-0 z-40 glass-panel border-b border-white/5 shadow-lg backdrop-blur-md mb-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Branding -->
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                        <i class="bi bi-calendar3-week text-xl text-white"></i>
+                    </div>
+                    <div>
+                        <span class="font-space font-bold text-xl bg-gradient-to-r from-white via-slate-100 to-cyan-400 bg-clip-text text-transparent">GlassFlow</span>
+                        <span class="block text-[10px] text-slate-400 tracking-wider uppercase font-semibold">Appointment Hub</span>
+                    </div>
+                </div>
+
+                <!-- Sync & Stats Quick Bar & Action -->
+                <div class="flex items-center gap-4">
+                    <button id="btn-sync" onclick="loadAppointments()" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 hover:text-white glass-panel transition-all">
+                        <i id="sync-icon" class="bi bi-arrow-clockwise"></i>
+                        <span>Sync</span>
+                    </button>
+                    <button onclick="openAppointmentModal()" class="flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all shadow-lg shadow-cyan-500/20 hover:scale-[1.02] focus:scale-[0.98]">
+                        <i class="bi bi-plus-circle-fill"></i>
+                        <span class="hidden sm:inline">New Appointment</span>
+                        <span class="sm:hidden">Book</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Top Stats Counter Panel -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Stat 1: Total -->
+            <div class="glass-panel p-4 rounded-2xl flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-slate-800/85 border border-white/10 flex items-center justify-center text-cyan-400">
+                    <i class="bi bi-people text-2xl"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-400 font-medium">Total Bookings</p>
+                    <h3 id="stat-total" class="font-space font-bold text-2xl text-white">0</h3>
+                </div>
+            </div>
+            <!-- Stat 2: Confirmed -->
+            <div class="glass-panel p-4 rounded-2xl flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-slate-800/85 border border-white/10 flex items-center justify-center text-green-400">
+                    <i class="bi bi-shield-check text-2xl"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-400 font-medium">Confirmed</p>
+                    <h3 id="stat-confirmed" class="font-space font-bold text-2xl text-white">0</h3>
+                </div>
+            </div>
+            <!-- Stat 3: Pending -->
+            <div class="glass-panel p-4 rounded-2xl flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-slate-800/85 border border-white/10 flex items-center justify-center text-amber-400">
+                    <i class="bi bi-clock-history text-2xl"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-400 font-medium">Pending Review</p>
+                    <h3 id="stat-pending" class="font-space font-bold text-2xl text-white">0</h3>
+                </div>
+            </div>
+            <!-- Stat 4: Today's Date -->
+            <div class="glass-panel p-4 rounded-2xl flex items-center gap-4 col-span-2 lg:col-span-1">
+                <div class="w-12 h-12 rounded-xl bg-slate-800/85 border border-white/10 flex items-center justify-center text-indigo-400">
+                    <i class="bi bi-calendar-event text-2xl"></i>
+                </div>
+                <div class="w-full">
+                    <p class="text-xs text-slate-400 font-medium">Today</p>
+                    <h3 id="stat-today-date" class="font-space font-bold text-base text-white truncate">...</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Frame -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+        
+        <!-- Filter Controls Container -->
+        <div class="glass-panel p-4 rounded-2xl mb-6 shadow-md">
+            <div class="flex flex-col lg:flex-row gap-4 items-center justify-between">
+                <!-- Search -->
+                <div class="relative w-full lg:w-96">
+                    <i class="bi bi-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input type="text" id="filter-search" oninput="applyFilters()" placeholder="Search client name, service, or notes..." class="w-full glass-input rounded-xl py-2 pl-10 pr-4 text-sm font-medium">
+                </div>
+                <!-- Interactive Action Tabs / Filters -->
+                <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+                    <!-- Status Filter select buttons -->
+                    <div class="flex bg-slate-900/60 p-1 rounded-xl border border-white/5 space-x-1 w-full sm:w-auto overflow-x-auto">
+                        <button onclick="setStatusFilter('All')" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all bg-cyan-500/20 text-cyan-300 border border-cyan-500/25" data-filter="All">All</button>
+                        <button onclick="setStatusFilter('Pending')" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all text-slate-400 hover:text-white" data-filter="Pending">Pending</button>
+                        <button onclick="setStatusFilter('Confirmed')" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all text-slate-400 hover:text-white" data-filter="Confirmed">Confirmed</button>
+                        <button onclick="setStatusFilter('Completed')" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all text-slate-400 hover:text-white" data-filter="Completed">Completed</button>
+                    </div>
+
+                    <!-- Service Filter dropdown -->
+                    <select id="filter-service" onchange="applyFilters()" class="glass-input rounded-xl py-2 px-3 text-xs font-semibold uppercase tracking-wider w-full sm:w-auto">
+                        <option value="All">All Services</option>
+                        <option value="Consultation">Consultation</option>
+                        <option value="Executive Review">Executive Review</option>
+                        <option value="Aesthetic Therapy">Aesthetic Therapy</option>
+                        <option value="Deployment Checkup">Deployment Checkup</option>
+                        <option value="Critical Support">Critical Support</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Loading Skeleton Placeholder -->
+        <div id="loader-skeleton" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Skeleton Card -->
+            <div class="glass-panel p-6 rounded-2xl border border-white/5 animate-pulse">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="w-12 h-12 bg-slate-800/80 rounded-full"></div>
+                    <div class="w-20 h-6 bg-slate-800/80 rounded"></div>
+                </div>
+                <div class="h-4 bg-slate-800/80 rounded w-2/3 mb-2"></div>
+                <div class="h-3 bg-slate-800/80 rounded w-1/2 mb-4"></div>
+                <div class="h-10 bg-slate-800/80 rounded w-full mb-4"></div>
+                <div class="flex justify-between mt-4">
+                    <div class="w-16 h-8 bg-slate-800/80 rounded"></div>
+                    <div class="w-16 h-8 bg-slate-800/80 rounded flex gap-2"></div>
+                </div>
+            </div>
+            <!-- Repeat Skeleton Cards for beauty -->
+            <div class="glass-panel p-6 rounded-2xl border border-white/5 animate-pulse hidden md:block">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="w-12 h-12 bg-slate-800/80 rounded-full"></div>
+                    <div class="w-20 h-6 bg-slate-800/80 rounded"></div>
+                </div>
+                <div class="h-4 bg-slate-800/80 rounded w-2/3 mb-2"></div>
+                <div class="h-3 bg-slate-800/80 rounded w-1/2 mb-4"></div>
+                <div class="h-10 bg-slate-800/80 rounded w-full mb-4"></div>
+                <div class="flex justify-between mt-4">
+                    <div class="w-16 h-8 bg-slate-800/80 rounded"></div>
+                    <div class="w-16 h-8 bg-slate-800/80 rounded flex gap-2"></div>
+                </div>
+            </div>
+            <div class="glass-panel p-6 rounded-2xl border border-white/5 animate-pulse hidden lg:block">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="w-12 h-12 bg-slate-800/80 rounded-full"></div>
+                    <div class="w-20 h-6 bg-slate-800/80 rounded"></div>
+                </div>
+                <div class="h-4 bg-slate-800/80 rounded w-2/3 mb-2"></div>
+                <div class="h-3 bg-slate-800/80 rounded w-1/2 mb-4"></div>
+                <div class="h-10 bg-slate-800/80 rounded w-full mb-4"></div>
+                <div class="flex justify-between mt-4">
+                    <div class="w-16 h-8 bg-slate-800/80 rounded"></div>
+                    <div class="w-16 h-8 bg-slate-800/80 rounded flex gap-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Appointment Main Cards Container -->
+        <div id="no-content-view" class="hidden text-center py-16 px-4 glass-panel rounded-2xl flex flex-col items-center justify-center border border-white/5">
+            <div class="w-16 h-16 rounded-full bg-slate-900/60 flex items-center justify-center text-slate-500 mb-4 border border-white/10">
+                <i class="bi bi-journal-x text-3xl"></i>
+            </div>
+            <h3 class="text-lg font-space font-semibold text-white mb-1">No appointments match your filter</h3>
+            <p class="text-sm text-slate-400 max-w-sm mb-6">Create a brand new client booking or reset your filters to find existing logs.</p>
+            <button onclick="openAppointmentModal()" class="px-5 py-2 hover:scale-105 active:scale-95 transition-all text-xs font-semibold bg-gradient-to-r from-cyan-500 to-indigo-500 rounded-xl text-white flex items-center gap-2">
+                <i class="bi bi-plus-circle"></i> Create First Booking Now
+            </button>
+        </div>
+
+        <!-- Grid layout of Appointments -->
+        <div id="appointments-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Appended programmatically -->
+        </div>
+
+    </main>
+
+    <!-- Appointment Form Slider/Modal: Create & Edit Mode -->
+    <div id="modal-appointment" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity" onclick="closeAppointmentModal()"></div>
+        <!-- Modal wrapper -->
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <div class="relative transform overflow-hidden rounded-2xl text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg glass-panel border border-white/15 shadow-glass">
+                
+                <!-- Card Header -->
+                <div class="px-6 pt-6 pb-4 border-b border-white/10 flex items-center justify-between">
+                    <div>
+                        <h3 id="modal-title" class="font-space font-bold text-xl text-white">Book New Appointment</h3>
+                        <p class="text-xs text-cyan-400 mt-0.5">Please fill out all the client parameters below</p>
+                    </div>
+                    <button onclick="closeAppointmentModal()" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+
+                <!-- Form Content -->
+                <form id="appt-form" onsubmit="handleFormSubmission(event)" class="p-6 space-y-4">
+                    <input type="hidden" id="form-appt-id">
+                    
+                    <!-- Client Name -->
+                    <div>
+                        <label for="form-name" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Client Full Name *</label>
+                        <div class="relative">
+                            <i class="bi bi-person absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="form-name" required placeholder="John Doe" class="w-full glass-input rounded-xl py-2.5 pl-10 pr-4 text-sm font-medium">
+                        </div>
+                    </div>
+
+                    <!-- Email & Phone Dual Row -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="form-email" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Email *</label>
+                            <div class="relative">
+                                <i class="bi bi-envelope absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                <input type="email" id="form-email" required placeholder="john@enterprise.com" class="w-full glass-input rounded-xl py-2.5 pl-10 pr-4 text-sm font-medium">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="form-phone" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Phone Number *</label>
+                            <div class="relative">
+                                <i class="bi bi-telephone absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                <input type="tel" id="form-phone" required placeholder="(555) 019-2834" class="w-full glass-input rounded-xl py-2.5 pl-10 pr-4 text-sm font-medium">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Date & Time Dual Row -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="form-date" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Appointment Date *</label>
+                            <div class="relative">
+                                <input type="date" id="form-date" required class="w-full glass-input rounded-xl py-2.5 px-4 text-sm font-medium">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="form-time" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Appointment Time *</label>
+                            <div class="relative">
+                                <input type="time" id="form-time" required class="w-full glass-input rounded-xl py-2.5 px-4 text-sm font-medium">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Service Selector & Initial Status Selector -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="form-service" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Service Tier *</label>
+                            <select id="form-service" required class="w-full glass-input rounded-xl py-2.5 px-4 text-sm font-medium">
+                                <option value="Consultation">Consultation</option>
+                                <option value="Executive Review">Executive Review</option>
+                                <option value="Aesthetic Therapy">Aesthetic Therapy</option>
+                                <option value="Deployment Checkup">Deployment Checkup</option>
+                                <option value="Critical Support">Critical Support</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="form-status" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Initial Status</label>
+                            <select id="form-status" required class="w-full glass-input rounded-xl py-2.5 px-4 text-sm font-medium">
+                                <option value="Pending" selected>Pending Review</option>
+                                <option value="Confirmed">Confirmed</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Additional Session Notes -->
+                    <div>
+                        <label for="form-notes" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Session & Design Requirements</label>
+                        <textarea id="form-notes" rows="3" placeholder="Provide extra requirements or project outlines..." class="w-full glass-input rounded-xl py-2.5 px-4 text-sm font-medium resize-none"></textarea>
+                    </div>
+
+                    <!-- Actions Panel footer -->
+                    <div class="pt-4 border-t border-white/10 flex justify-end gap-3">
+                        <button type="button" onclick="closeAppointmentModal()" class="px-5 py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-sm font-semibold transition-all text-slate-300">
+                            Cancel
+                        </button>
+                        <button type="submit" id="btn-submit-form" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-600 hover:to-indigo-600 font-semibold text-sm text-white transition-all shadow-md shadow-cyan-500/10 flex items-center gap-2">
+                            <span id="submit-spinner" class="hidden"><i class="bi bi-arrow-repeat animate-spin"></i></span>
+                            <span id="submit-text">Book Appointment</span>
+                        </button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Delete Modal Modal -->
+    <div id="modal-confirm-delete" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity" onclick="closeDeleteModal()"></div>
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <div class="relative transform overflow-hidden rounded-2xl text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md glass-panel border border-white/15 p-6">
+                <div class="flex items-center gap-4 text-rose-500 mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-rose-500/20 flex items-center justify-center">
+                        <i class="bi bi-exclamation-triangle text-2xl"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-space font-bold text-lg text-white">Cancel Appointment?</h4>
+                        <p class="text-xs text-slate-400">This action cannot secure recovery from index database.</p>
+                    </div>
+                </div>
+                <!-- ID Holder -->
+                <input type="hidden" id="delete-appt-id">
+                
+                <p class="text-sm text-slate-300 mb-6">Are you sure you want to completely scrub this booking? This will remove all associated logs and scheduling metadata permanently.</p>
+
+                <div class="flex justify-end gap-3">
+                    <button onclick="closeDeleteModal()" class="px-4 py-2 rounded-xl border border-white/10 hover:bg-white/5 text-xs font-semibold text-slate-300 transition-all">Go Back</button>
+                    <button onclick="confirmDeleteAppointment()" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 hover:scale-105 text-xs font-semibold text-white transition-all flex items-center gap-2 shadow-lg shadow-rose-900/40">
+                        <span id="delete-spinner" class="hidden"><i class="bi bi-arrow-repeat animate-spin"></i></span>
+                        Scrube Record
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // Database credentials & environment configured exactly
+        const APP_SLUG = "sleek-clever-robust-8893";
+        const MONGO_ENDPOINT = "https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/mongodb";
+        const COLLECTION_NAME = "appointments";
+
+        // Global State
+        let allAppointments = [];
+        let activeStatusFilter = "All";
+
+        // Initialize App on DOM load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAppointments();
+            displayCurrentDate();
+        });
+
+        // Show Current human-readable Date
+        function displayCurrentDate() {
+            const options = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
+            document.getElementById('stat-today-date').innerText = new Date().toLocaleDateString('en-US', options);
+        }
+
+        // Show Toast Notifications beautifully
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const alertId = 'alert-' + Date.now();
+            
+            let colorClasses = '';
+            let icon = '';
+            if (type === 'success') {
+                colorClasses = 'from-emerald-500/20 to-teal-500/20 border-emerald-500/30 text-emerald-200';
+                icon = 'bi-check-circle-fill';
+            } else if (type === 'info') {
+                colorClasses = 'from-cyan-500/20 to-blue-500/20 border-cyan-500/30 text-cyan-200';
+                icon = 'bi-info-circle-fill';
+            } else {
+                colorClasses = 'from-rose-500/20 to-pink-500/20 border-rose-500/30 text-rose-200';
+                icon = 'bi-exclamation-octagon-fill';
+            }
+
+            const alertHtml = `
+                <div id="${alertId}" class="flex items-center gap-3 p-4 rounded-xl border bg-gradient-to-r backdrop-blur-md shadow-lg shadow-black/40 transition-all transform duration-300 translate-x-12 opacity-0 pointer-events-auto select-none ${colorClasses}">
+                    <i class="bi ${icon} text-lg"></i>
+                    <p class="text-xs font-semibold">${message}</p>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', alertHtml);
+
+            // Animate In safely
+            const alertElement = document.getElementById(alertId);
+            setTimeout(() => {
+                alertElement.classList.remove('translate-x-12', 'opacity-0');
+            }, 50);
+
+            // Animate Out automatically after 4 seconds
+            setTimeout(() => {
+                alertElement.classList.add('translate-x-12', 'opacity-0');
+                setTimeout(() => {
+                    alertElement.remove();
+                }, 400);
+            }, 4000);
+        }
+
+        // Rotate Refresh Animation
+        function setSyncIconBusy(isBusy) {
+            const icon = document.getElementById('sync-icon');
+            if (isBusy) {
+                icon.classList.add('animate-spin');
+            } else {
+                icon.classList.remove('animate-spin');
+            }
+        }
+
+        // READ: Fetch documents from server database
+        async function loadAppointments() {
+            setSyncIconBusy(true);
+            const skeleton = document.getElementById('loader-skeleton');
+            const grid = document.getElementById('appointments-grid');
+            const emptyView = document.getElementById('no-content-view');
+
+            // Toggle visual skeletons
+            skeleton.classList.remove('hidden');
+            grid.classList.add('hidden');
+            emptyView.classList.add('hidden');
+
+            try {
+                const response = await fetch(MONGO_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        appSlug: APP_SLUG,
+                        action: 'read',
+                        collection: COLLECTION_NAME
+                    })
+                });
+
+                if (!response.ok) throw new Error('Network failure or API reject');
+
+                const data = await response.json();
+                if (data.success && Array.isArray(data.result)) {
+                    allAppointments = data.result;
+                    // Sort appointments by Date and Time (newest schedule first)
+                    allAppointments.sort((a,b) => {
+                        const dateA = new Date((a.date || "") + ' ' + (a.time || "00:00"));
+                        const dateB = new Date((b.date || "") + ' ' + (b.time || "00:00"));
+                        return dateB - dateA;
+                    });
+                    
+                    applyFilters();
+                    calculateStatistics();
+                } else {
+                    showToast('Failed to fetch clear records', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Database connection error occurred', 'error');
+            } finally {
+                setSyncIconBusy(false);
+                skeleton.classList.add('hidden');
+            }
+        }
+
+        // Filter Controller
+        function setStatusFilter(status) {
+            activeStatusFilter = status;
+            
+            // Adjust visual classes of filters tab
+            const tabs = document.querySelectorAll('.tab-btn');
+            tabs.forEach(tab => {
+                const filterValue = tab.getAttribute('data-filter');
+                if (filterValue === status) {
+                    tab.className = "tab-btn px-4 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all bg-cyan-500/20 text-cyan-300 border border-cyan-500/25";
+                } else {
+                    tab.className = "tab-btn px-4 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all text-slate-400 hover:text-white";
+                }
+            });
+
+            applyFilters();
+        }
+
+        // Filter and Build Render Process
+        function applyFilters() {
+            const searchVal = document.getElementById('filter-search').value.toLowerCase();
+            const serviceVal = document.getElementById('filter-service').value;
+            const grid = document.getElementById('appointments-grid');
+            const emptyView = document.getElementById('no-content-view');
+
+            // Clear previous elements
+            grid.innerHTML = '';
+
+            const filtered = allAppointments.filter(item => {
+                // Status match
+                if (activeStatusFilter !== 'All' && item.status !== activeStatusFilter) return false;
+                
+                // Service match
+                if (serviceVal !== 'All' && item.service !== serviceVal) return false;
+
+                // Search query match
+                if (searchVal) {
+                    const clientName = (item.clientName || '').toLowerCase();
+                    const email = (item.email || '').toLowerCase();
+                    const notes = (item.notes || '').toLowerCase();
+                    if (!clientName.includes(searchVal) && !email.includes(searchVal) && !notes.includes(searchVal)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            // Toggle empty placeholder view
+            if (filtered.length === 0) {
+                grid.classList.add('hidden');
+                emptyView.classList.remove('hidden');
+                return;
+            }
+
+            grid.classList.remove('hidden');
+            emptyView.classList.add('hidden');
+
+            // Build structural glass elements for each entity
+            filtered.forEach(item => {
+                const dateObj = new Date((item.date || '') + ' ' + (item.time || '00:00'));
+                const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+                const formattedTime = (item.time) ? convertToTwelveHour(item.time) : 'N/A';
+
+                // Status Theme styling matching
+                let statusBadge = '';
+                switch (item.status) {
+                    case 'Confirmed':
+                        statusBadge = `<span class="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-sm shadow-emerald-900/10"><i class="bi bi-patch-check-fill text-xs"></i> Confirmed</span>`;
+                        break;
+                    case 'Completed':
+                        statusBadge = `<span class="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"><i class="bi bi-clock-history text-xs"></i> Past Completed</span>`;
+                        break;
+                    case 'Cancelled':
+                        statusBadge = `<span class="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/20"><i class="bi bi-dash-circle text-xs"></i> Cancelled</span>`;
+                        break;
+                    default:
+                        statusBadge = `<span class="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse"><i class="bi bi-hourglass-split text-xs"></i> Verification</span>`;
+                }
+
+                // Generative Color Icons based on client first character code
+                const initialChar = (item.clientName || 'G').charAt(0).toUpperCase();
+
+                const cardHtml = `
+                    <div class="glass-panel p-6 rounded-2xl flex flex-col justify-between transition-all duration-300 hover:scale-[1.01] hover:-translate-y-1 glass-panel-hover group relative overflow-hidden">
+                        
+                        <!-- Mini dynamic neon side marker -->
+                        <div class="absolute left-0 top-0 bottom-0 w-[4px] bg-gradient-to-b ${item.status === 'Confirmed' ? 'from-emerald-400 to-emerald-600' : item.status === 'Completed' ? 'from-indigo-400 to-indigo-600' : item.status === 'Cancelled' ? 'from-rose-400 to-rose-600' : 'from-amber-400 to-amber-600'}"></div>
+
+                        <div>
+                            <!-- Header Element: Avatar & Status Badge -->
+                            <div class="flex items-center justify-between mb-4 gap-2">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full flex items-center justify-center font-space font-bold text-white text-base bg-gradient-to-tr from-cyan-600/30 to-indigo-600/30 border border-white/20 select-none shadow">
+                                        ${initialChar}
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-slate-100 group-hover:text-cyan-300 transition-colors pointer-events-auto break-all mr-1 line-clamp-1">${item.clientName || 'Premium Client'}</h4>
+                                        <p class="text-[10px] text-slate-400 font-medium font-mono">${item.service || 'Default Consultation'}</p>
+                                    </div>
+                                </div>
+                                <div>
+                                    ${statusBadge}
+                                </div>
+                            </div>
+
+                            <!-- Schedule Data Bar -->
+                            <div class="bg-indigo-950/20 border border-white/5 rounded-xl p-3 mb-4 space-y-1.5 pointer-events-none">
+                                <div class="flex items-center text-xs text-slate-300 gap-2">
+                                    <i class="bi bi-calendar3 text-cyan-400"></i>
+                                    <span>${formattedDate}</span>
+                                </div>
+                                <div class="flex items-center text-xs text-slate-300 gap-2">
+                                    <i class="bi bi-alarm text-cyan-400"></i>
+                                    <span>${formattedTime}</span>
+                                </div>
+                            </div>
+
+                            <!-- Meta Info & Client notes -->
+                            <div class="space-y-2 mb-6">
+                                <button onclick="navigator.clipboard.writeText('${item.email || ''}'); showToast('Email copied to clipboard', 'info');" class="flex items-center gap-2 text-xs text-slate-400 hover:text-cyan-300 transition-colors w-full text-left">
+                                    <i class="bi bi-envelope-at"></i>
+                                    <span class="truncate">${item.email || 'N/A'}</span>
+                                </button>
+                                <button onclick="navigator.clipboard.writeText('${item.phone || ''}'); showToast('Phone copied to clipboard', 'info');" class="flex items-center gap-2 text-xs text-slate-400 hover:text-cyan-300 transition-colors w-full text-left">
+                                    <i class="bi bi-telephone"></i>
+                                    <span class="truncate">${item.phone || 'N/A'}</span>
+                                </button>
+                                ${item.notes ? `
+                                    <div class="bg-slate-900/30 rounded-lg p-2 border border-white/5">
+                                        <p class="text-[11px] text-slate-400 italic line-clamp-2">"${item.notes}"</p>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        <!-- Card Action Panels Footer -->
+                        <div class="flex items-center justify-between pt-4 border-t border-white/5 font-semibold text-xs mt-auto">
+                            <!-- Quick Status Change Dropdown inside dashboard -->
+                            <div class="relative inline-block text-left">
+                                <select onchange="updateQuickStatus('${item._id}', this.value)" class="bg-slate-900/60 text-slate-300 border border-white/10 rounded-lg py-1 px-1.5 text-[10px] hover:border-slate-500 transition-colors focus:ring-1 focus:ring-cyan-400 outline-none">
+                                    <option value="Pending" ${item.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                                    <option value="Confirmed" ${item.status === 'Confirmed' ? 'selected' : ''}>Confirm</option>
+                                    <option value="Completed" ${item.status === 'Completed' ? 'selected' : ''}>Complete</option>
+                                    <option value="Cancelled" ${item.status === 'Cancelled' ? 'selected' : ''}>Cancel</option>
+                                </select>
+                            </div>
+
+                            <div class="flex gap-2">
+                                <button onclick="editAppointment('${item._id}')" class="p-1 px-2.5 rounded-lg border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300 transition-all" title="Edit Appt">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+                                <button onclick="openDeleteModal('${item._id}')" class="p-1 px-2.5 rounded-lg border border-rose-500/20 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-all" title="Delete Appt">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                `;
+                grid.insertAdjacentHTML('beforeend', cardHtml);
+            });
+        }
+
+        // Auxiliary helper function converting 24h schedule values to 12h representation
+        function convertToTwelveHour(timeStr) {
+            const [hoursStr, minutesStr] = timeStr.split(':');
+            let hours = parseInt(hoursStr);
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12; // conversion logic for 0
+            return `${hours}:${minutesStr} ${ampm}`;
+        }
+
+        // Dynamic metrics calculation engine
+        function calculateStatistics() {
+            const total = allAppointments.length;
+            const confirmed = allAppointments.filter(x => x.status === 'Confirmed').length;
+            const pending = allAppointments.filter(x => x.status === 'Pending').length;
+
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-confirmed').innerText = confirmed;
+            document.getElementById('stat-pending').innerText = pending;
+        }
+
+        // Open Appointment Creation / Editing Form Modal
+        function openAppointmentModal(editId = null) {
+            const form = document.getElementById('appt-form');
+            form.reset();
+            document.getElementById('form-appt-id').value = '';
+            
+            // Set default date picker target to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('form-date').value = today;
+
+            if (editId) {
+                // Edit workflow styling Configuration
+                document.getElementById('modal-title').innerText = 'Modify Appointment';
+                document.getElementById('submit-text').innerText = 'Save Modifications';
+                
+                // Populate inputs matching ID parameters
+                const target = allAppointments.find(x => x._id === editId);
+                if (target) {
+                    document.getElementById('form-appt-id').value = target._id;
+                    document.getElementById('form-name').value = target.clientName || '';
+                    document.getElementById('form-email').value = target.email || '';
+                    document.getElementById('form-phone').value = target.phone || '';
+                    document.getElementById('form-date').value = target.date || today;
+                    document.getElementById('form-time').value = target.time || '';
+                    document.getElementById('form-service').value = target.service || 'Consultation';
+                    document.getElementById('form-status').value = target.status || 'Pending';
+                    document.getElementById('form-notes').value = target.notes || '';
+                }
+            } else {
+                // Create mode Configuration
+                document.getElementById('modal-title').innerText = 'Book New Appointment';
+                document.getElementById('submit-text').innerText = 'Book Appointment';
+            }
+
+            document.getElementById('modal-appointment').classList.remove('hidden');
+        }
+
+        // Safe Modal Closure Handling
+        function closeAppointmentModal() {
+            document.getElementById('modal-appointment').classList.add('hidden');
+        }
+
+        // Trigger dynamic Update directly from status select elements on lists
+        async function updateQuickStatus(id, newStatus) {
+            const record = allAppointments.find(x => x._id === id);
+            if (!record) return;
+
+            // Optimistic Client Render state update
+            record.status = newStatus;
+            applyFilters();
+            calculateStatistics();
+
+            try {
+                const response = await fetch(MONGO_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        appSlug: APP_SLUG,
+                        action: 'update',
+                        collection: COLLECTION_NAME,
+                        conditions: { _id: id },
+                        data: {
+                            status: newStatus
+                        }
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showToast('Successfully updated status tier to ' + newStatus, 'success');
+                } else {
+                    showToast('Critical Status update rejection', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Unable to secure record status changes', 'error');
+            }
+        }
+
+        // CREATE & UPDATE execution flow
+        async function handleFormSubmission(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('btn-submit-form');
+            const spinner = document.getElementById('submit-spinner');
+            const text = document.getElementById('submit-text');
+
+            // Toggle processing interfaces
+            submitBtn.disabled = true;
+            spinner.classList.remove('hidden');
+            
+            const appointmentId = document.getElementById('form-appt-id').value;
+            const payload = {
+                clientName: document.getElementById('form-name').value,
+                email: document.getElementById('form-email').value,
+                phone: document.getElementById('form-phone').value,
+                date: document.getElementById('form-date').value,
+                time: document.getElementById('form-time').value,
+                service: document.getElementById('form-service').value,
+                status: document.getElementById('form-status').value,
+                notes: document.getElementById('form-notes').value
+            };
+
+            try {
+                let response;
+                if (appointmentId) {
+                    // Update Action Payload
+                    response = await fetch(MONGO_ENDPOINT, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            appSlug: APP_SLUG,
+                            action: 'update',
+                            collection: COLLECTION_NAME,
+                            conditions: { _id: appointmentId },
+                            data: payload
+                        })
+                    });
+                } else {
+                    // Create Action Payload
+                    response = await fetch(MONGO_ENDPOINT, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            appSlug: APP_SLUG,
+                            action: 'create',
+                            collection: COLLECTION_NAME,
+                            data: payload
+                        })
+                    });
+                }
+
+                const data = await response.json();
+                if (data.success) {
+                    showToast(appointmentId ? 'Appointment modification successful' : 'New Client booking created', 'success');
+                    closeAppointmentModal();
+                    // Refetch records immediately to sync client and dynamic indexes
+                    await loadAppointments();
+                } else {
+                    showToast('Record writing sequence has been declined', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Severe server network error', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                spinner.classList.add('hidden');
+            }
+        }
+
+        // Route to edit mode
+        function editAppointment(id) {
+            openAppointmentModal(id);
+        }
+
+        // Trigger safe Confirm delete window Dialogues
+        function openDeleteModal(id) {
+            document.getElementById('delete-appt-id').value = id;
+            document.getElementById('modal-confirm-delete').classList.remove('hidden');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('modal-confirm-delete').classList.add('hidden');
+            document.getElementById('delete-appt-id').value = '';
+        }
+
+        // DELETE: Execute scrub transaction payload
+        async function confirmDeleteAppointment() {
+            const id = document.getElementById('delete-appt-id').value;
+            if (!id) return;
+
+            const deleteSpinner = document.getElementById('delete-spinner');
+            deleteSpinner.classList.remove('hidden');
+
+            try {
+                const response = await fetch(MONGO_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        appSlug: APP_SLUG,
+                        action: 'delete',
+                        collection: COLLECTION_NAME,
+                        id: id
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showToast('Record scrubbed successfully', 'success');
+                    closeDeleteModal();
+                    await loadAppointments();
+                } else {
+                    showToast('Server declined delete operation', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Unable to synchronize delete with remote', 'error');
+            } finally {
+                deleteSpinner.classList.add('hidden');
+            }
+        }
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
